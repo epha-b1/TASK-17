@@ -67,6 +67,13 @@ func resetAuthData(t *testing.T, pool *pgxpool.Pool) {
 	ctx := context.Background()
 	_, err := pool.Exec(ctx, `
 		TRUNCATE TABLE
+			notification_jobs,
+			notifications,
+			notification_subscriptions,
+			notification_topics,
+			user_dnd_settings,
+			compensating_events,
+			reconciliation_runs,
 			stop_events,
 			vehicle_positions,
 			exceptions,
@@ -149,6 +156,15 @@ func resetAuthData(t *testing.T, pool *pgxpool.Pool) {
 	`, auditorID)
 	if err != nil {
 		t.Fatalf("seed auditor role: %v", err)
+	}
+
+	_, err = pool.Exec(ctx, `
+		INSERT INTO notification_topics(name)
+		VALUES ('booking_success'), ('booking_changed'), ('expiry_approaching'), ('arrears_reminder')
+		ON CONFLICT (name) DO NOTHING
+	`)
+	if err != nil {
+		t.Fatalf("seed notification topics: %v", err)
 	}
 }
 

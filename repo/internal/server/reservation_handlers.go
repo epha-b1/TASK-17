@@ -3,6 +3,7 @@ package server
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"strings"
@@ -14,15 +15,19 @@ import (
 
 	"parkops/internal/auth"
 	"parkops/internal/exceptions"
+	"parkops/internal/notifications"
+	"parkops/internal/reconciliation"
 )
 
 type reservationHandler struct {
-	pool        *pgxpool.Pool
-	authService *auth.Service
+	pool            *pgxpool.Pool
+	authService     *auth.Service
+	reconcileSvc    *reconciliation.Service
+	notificationSvc *notifications.Service
 }
 
 func registerReservationRoutes(r *gin.Engine, authService *auth.Service, pool *pgxpool.Pool) {
-	h := &reservationHandler{pool: pool, authService: authService}
+	h := &reservationHandler{pool: pool, authService: authService, reconcileSvc: reconciliation.NewService(pool, authService), notificationSvc: notifications.NewService(pool)}
 
 	allRead := []string{auth.RoleFacilityAdmin, auth.RoleFleetManager, auth.RoleDispatch, auth.RoleAuditor}
 	read := r.Group("/api")
@@ -46,6 +51,12 @@ func registerReservationRoutes(r *gin.Engine, authService *auth.Service, pool *p
 		write.POST("/reservations/hold", h.createHold)
 		write.POST("/reservations/:id/confirm", h.confirmReservation)
 		write.POST("/reservations/:id/cancel", h.cancelReservation)
+	}
+
+	adminWrite := r.Group("/api")
+	adminWrite.Use(requireSession(authService), enforceForcePasswordChange(), requireRoles(authService, auth.RoleFacilityAdmin))
+	{
+		adminWrite.POST("/reconciliation/run", h.runReconciliation)
 	}
 
 	dispatchWrite := r.Group("/api")
@@ -227,6 +238,11 @@ func (h *reservationHandler) confirmReservation(c *gin.Context) {
 		return
 	}
 	if err := h.writeSnapshot(c, tx, res.ZoneID, now); err != nil {
+		abortAPIError(c, 500, "INTERNAL_ERROR", "internal server error")
+		return
+	}
+	if err := h.notificationSvc.QueueBookingConfirmed(c.Request.Context(), tx, res.ID, now); err != nil {
+		slog.Error("queue booking notifications failed", "reservation_id", res.ID, "error", err)
 		abortAPIError(c, 500, "INTERNAL_ERROR", "internal server error")
 		return
 	}
@@ -481,12 +497,20 @@ func (h *reservationHandler) listSnapshots(c *gin.Context) {
 	if limit <= 0 || limit > 200 {
 		limit = 50
 	}
-	rows, err := h.pool.Query(c.Request.Context(), `
+	zoneID := strings.TrimSpace(c.Query("zone_id"))
+	query := `
 		SELECT id::text, zone_id::text, snapshot_at, authoritative_stalls
 		FROM capacity_snapshots
-		ORDER BY snapshot_at DESC
-		LIMIT $1
-	`, limit)
+	`
+	args := []any{}
+	if zoneID != "" {
+		query += ` WHERE zone_id = $1::uuid`
+		args = append(args, zoneID)
+	}
+	query += ` ORDER BY snapshot_at DESC LIMIT $` + strconv.Itoa(len(args)+1)
+	args = append(args, limit)
+
+	rows, err := h.pool.Query(c.Request.Context(), query, args...)
 	if err != nil {
 		abortAPIError(c, 500, "INTERNAL_ERROR", "internal server error")
 		return
@@ -502,13 +526,27 @@ func (h *reservationHandler) listSnapshots(c *gin.Context) {
 			return
 		}
 		out = append(out, gin.H{
-			"id":                  id,
-			"zone_id":             zoneID,
-			"snapshot_at":         at.UTC().Format(timeRFC3339),
+			"id":                   id,
+			"zone_id":              zoneID,
+			"snapshot_at":          at.UTC().Format(timeRFC3339),
 			"authoritative_stalls": stalls,
 		})
 	}
 	c.JSON(http.StatusOK, out)
+}
+
+func (h *reservationHandler) runReconciliation(c *gin.Context) {
+	result, err := h.reconcileSvc.RunOnce(c.Request.Context(), time.Now().UTC())
+	if err != nil {
+		slog.Error("reconciliation run failed", "error", err)
+		abortAPIError(c, 500, "INTERNAL_ERROR", "internal server error")
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{
+		"run_id":              result.RunID,
+		"zones_checked":       result.ZonesChecked,
+		"discrepancies_found": result.DiscrepanciesFound,
+	})
 }
 
 func (h *reservationHandler) reservationTimeline(c *gin.Context) {

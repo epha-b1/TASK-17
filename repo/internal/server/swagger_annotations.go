@@ -519,3 +519,117 @@ func swaggerTrackingPositionsList() {}
 // @Success 200 {object} map[string]interface{}
 // @Router /tracking/vehicles/{id}/stops [get]
 func swaggerTrackingStopsList() {}
+
+// @Summary Run reconciliation now
+// @Tags Capacity
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /reconciliation/run [post]
+func swaggerReconciliationRun() {}
+
+// @Summary List notification topics
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notification-topics [get]
+func swaggerNotificationTopicsList() {}
+
+// @Summary Subscribe notification topic
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notification-topics/{id}/subscribe [post]
+func swaggerNotificationTopicSubscribe() {}
+
+// @Summary Unsubscribe notification topic
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notification-topics/{id}/subscribe [delete]
+func swaggerNotificationTopicUnsubscribe() {}
+
+// @Summary Get notification settings
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notification-settings [get]
+func swaggerNotificationSettingsGet() {}
+
+// @Summary Patch notification settings
+// @Tags Notifications
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notification-settings [patch]
+func swaggerNotificationSettingsPatch() {}
+
+// @Summary Get DND settings
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notification-settings/dnd [get]
+func swaggerNotificationDNDGet() {}
+
+// @Summary Patch DND settings
+// @Tags Notifications
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notification-settings/dnd [patch]
+func swaggerNotificationDNDPatch() {}
+
+// @Summary List notifications
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notifications [get]
+func swaggerNotificationsList() {}
+
+// @Summary Get notification
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notifications/{id} [get]
+func swaggerNotificationGet() {}
+
+// @Summary Mark notification read
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notifications/{id}/read [patch]
+func swaggerNotificationRead() {}
+
+// @Summary Dismiss notification
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notifications/{id}/dismiss [post]
+func swaggerNotificationDismiss() {}
+
+// @Summary List export packages
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notifications/export-packages [get]
+func swaggerNotificationExportsList() {}
+
+// @Summary Download export package
+// @Tags Notifications
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /notifications/export-packages/{id}/download [get]
+func swaggerNotificationExportsDownload() {}

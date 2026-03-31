@@ -18,8 +18,11 @@ import (
 	"syscall"
 	"time"
 
+	"parkops/internal/auth"
 	"parkops/internal/config"
 	"parkops/internal/db"
+	"parkops/internal/notifications"
+	"parkops/internal/reconciliation"
 	"parkops/internal/server"
 )
 
@@ -49,6 +52,11 @@ func main() {
 	}
 
 	r := server.NewRouter(logger, pool, cfg.EncryptionKey)
+	reconcileService := reconciliation.NewService(pool, auth.NewService(auth.NewPostgresStore(pool)))
+	go reconciliation.StartScheduler(ctx, logger, reconcileService)
+	notificationService := notifications.NewService(pool)
+	go notifications.StartProcessor(ctx, logger, notificationService)
+
 	httpServer := &http.Server{
 		Addr:              cfg.AppAddr,
 		Handler:           r,

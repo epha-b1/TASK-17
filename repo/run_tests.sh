@@ -7,8 +7,15 @@ echo ""
 if ! docker compose ps --status running 2>/dev/null | grep -q "app"; then
   echo "--- Containers not running, starting... ---"
   docker compose up -d
-  echo "--- Waiting for DB to be healthy... ---"
-  sleep 8
+  echo "--- Waiting for app to be ready... ---"
+  for i in $(seq 1 30); do
+    if docker compose exec -T app wget -qO- http://localhost:8080/api/health >/dev/null 2>&1; then
+      echo "--- App is ready ---"
+      break
+    fi
+    echo "  waiting... ($i/30)"
+    sleep 3
+  done
 fi
 
 echo "--- Running tests ---"
@@ -19,6 +26,7 @@ docker compose exec -T app sh -c "
 "
 EXIT=$?
 
+echo ""
 if [ $EXIT -eq 0 ]; then
   echo "=== ALL TESTS PASSED ==="
 else
