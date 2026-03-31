@@ -402,6 +402,31 @@ func swaggerReservationTimeline() {}
 // @Router /exceptions [get]
 func swaggerExceptionsList() {}
 
+// @Summary Get exception
+// @Tags Exceptions
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /exceptions/{id} [get]
+func swaggerExceptionsGet() {}
+
+// @Summary Acknowledge exception
+// @Tags Exceptions
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /exceptions/{id}/acknowledge [post]
+func swaggerExceptionsAcknowledge() {}
+
+// @Summary List acknowledged exceptions history
+// @Tags Exceptions
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /exceptions/history [get]
+func swaggerExceptionsHistory() {}
+
 // @Summary Register device
 // @Tags Devices
 // @Security SessionCookie
@@ -469,3 +494,28 @@ func swaggerDeviceEventsList() {}
 // @Success 200 {object} map[string]interface{}
 // @Router /device-events/replay [post]
 func swaggerDeviceEventsReplay() {}
+
+// @Summary Submit tracking location report
+// @Tags Tracking
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 201 {object} map[string]interface{}
+// @Router /tracking/location [post]
+func swaggerTrackingLocationCreate() {}
+
+// @Summary List vehicle positions
+// @Tags Tracking
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /tracking/vehicles/{id}/positions [get]
+func swaggerTrackingPositionsList() {}
+
+// @Summary List vehicle stop events
+// @Tags Tracking
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /tracking/vehicles/{id}/stops [get]
+func swaggerTrackingStopsList() {}

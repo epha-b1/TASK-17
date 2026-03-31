@@ -26,6 +26,7 @@ func NewRouter(logger *slog.Logger, pool *pgxpool.Pool, encryptionKey []byte) *g
 	registerMasterDataRoutes(r, authService, pool, encryptionKey)
 	registerReservationRoutes(r, authService, pool)
 	registerDeviceRoutes(r, authService, pool)
+	registerTrackingRoutes(r, authService, pool)
 
 	r.GET("/login", gin.WrapH(templ.Handler(web.LoginPage())))
 	pages := r.Group("")

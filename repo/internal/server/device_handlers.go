@@ -14,6 +14,7 @@ import (
 
 	"parkops/internal/auth"
 	"parkops/internal/devices"
+	"parkops/internal/exceptions"
 )
 
 const reorderWindow = 10 * time.Minute
@@ -301,6 +302,17 @@ func (h *deviceHandler) ingestDeviceEvent(c *gin.Context) {
 	if err != nil {
 		abortAPIError(c, 500, "INTERNAL_ERROR", "internal server error")
 		return
+	}
+
+	if exceptionType, ok := exceptions.ExceptionTypeForEvent(b.EventType); ok {
+		_, err = tx.Exec(c.Request.Context(), `
+			INSERT INTO exceptions(device_id, exception_type, status, created_at)
+			VALUES ($1, $2, 'open', $3)
+		`, b.DeviceID, exceptionType, now)
+		if err != nil {
+			abortAPIError(c, 500, "INTERNAL_ERROR", "internal server error")
+			return
+		}
 	}
 
 	_, err = tx.Exec(c.Request.Context(), `
