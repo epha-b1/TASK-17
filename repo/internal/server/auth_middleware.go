@@ -14,6 +14,10 @@ func requireSession(authService *auth.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		sessionCookie, err := c.Cookie(auth.SessionCookieName)
 		if err != nil || sessionCookie == "" {
+			if !isAPIPath(c.Request.URL.Path) {
+				c.Redirect(http.StatusSeeOther, "/login")
+				return
+			}
 			abortAPIError(c, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required")
 			return
 		}
@@ -21,6 +25,10 @@ func requireSession(authService *auth.Service) gin.HandlerFunc {
 		user, session, err := authService.AuthenticateSession(c.Request.Context(), sessionCookie)
 		if err != nil {
 			clearSessionCookie(c)
+			if !isAPIPath(c.Request.URL.Path) {
+				c.Redirect(http.StatusSeeOther, "/login")
+				return
+			}
 			abortAPIError(c, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required")
 			return
 		}

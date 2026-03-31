@@ -78,8 +78,8 @@ func AppLayout(user CurrentUser, pageTitle, currentPath, contentHTML string) tem
               <p class="text-sm font-semibold text-slate-900">%s</p>
               <p class="text-xs text-slate-600">@%s</p>
               <p class="mt-2 text-xs text-slate-500">Roles: %s</p>
-              <form class="mt-3" method="post" action="/api/auth/logout">
-                <button class="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700" type="submit">Logout</button>
+              <form class="mt-3" method="post" action="/auth/logout" onsubmit="const btn=this.querySelector('button[type=submit]'); if(btn){btn.disabled=true; btn.textContent='Signing out...';}">
+                <button class="w-full rounded-md bg-slate-900 px-3 py-2 text-sm font-medium text-white hover:bg-slate-700 disabled:opacity-60" type="submit">Logout</button>
               </form>
             </div>
           </div>

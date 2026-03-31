@@ -49,7 +49,7 @@ func registerAuthRoutes(r *gin.Engine, authService *auth.Service) {
 	r.POST("/api/auth/login", apiLoginHandler(authService))
 	r.POST("/api/auth/logout", requireSession(authService), enforceForcePasswordChange(), requireRoles(authService, allSystemRoles()...), apiLogoutHandler(authService))
 	r.POST("/auth/login", formLoginHandler(authService))
-	r.POST("/auth/logout", requireSession(authService), enforceForcePasswordChange(), requireRoles(authService, allSystemRoles()...), formLogoutHandler(authService))
+	r.POST("/auth/logout", formLogoutHandler(authService))
 
 	authenticated := r.Group("/api")
 	authenticated.Use(requireSession(authService), enforceForcePasswordChange(), requireRoles(authService, allSystemRoles()...))

@@ -401,3 +401,71 @@ func swaggerReservationTimeline() {}
 // @Success 200 {object} map[string]interface{}
 // @Router /exceptions [get]
 func swaggerExceptionsList() {}
+
+// @Summary Register device
+// @Tags Devices
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 201 {object} map[string]interface{}
+// @Router /devices [post]
+func swaggerDeviceCreate() {}
+
+// @Summary List devices
+// @Tags Devices
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /devices [get]
+func swaggerDeviceList() {}
+
+// @Summary Get device
+// @Tags Devices
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /devices/{id} [get]
+func swaggerDeviceGet() {}
+
+// @Summary Update device
+// @Tags Devices
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /devices/{id} [patch]
+func swaggerDevicePatch() {}
+
+// @Summary Delete device
+// @Tags Devices
+// @Security SessionCookie
+// @Success 204
+// @Router /devices/{id} [delete]
+func swaggerDeviceDelete() {}
+
+// @Summary Ingest device event
+// @Tags Devices
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 201 {object} map[string]interface{}
+// @Success 200 {object} map[string]interface{}
+// @Router /device-events [post]
+func swaggerDeviceEventCreate() {}
+
+// @Summary List device events
+// @Tags Devices
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /device-events [get]
+func swaggerDeviceEventsList() {}
+
+// @Summary Replay device events
+// @Tags Devices
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /device-events/replay [post]
+func swaggerDeviceEventsReplay() {}
