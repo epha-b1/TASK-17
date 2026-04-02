@@ -19,9 +19,12 @@ func ListPage(user CurrentUser, title, currentPath, endpoint string) templ.Compo
 		}
 
 		content := fmt.Sprintf(`<section class="space-y-4">
-  <div>
-    <h1 class="text-3xl font-semibold">%s</h1>
-    <p class="mt-1 text-slate-600">Operational data view.</p>
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-3xl font-semibold">%s</h1>
+      <p class="mt-1 text-slate-600">Operational data view.</p>
+    </div>
+    <button id="%sRefresh" class="rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 shadow-sm">Refresh</button>
   </div>
   <section class="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
     <div id="%sState" class="mb-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600">Loading...</div>
@@ -35,45 +38,77 @@ func ListPage(user CurrentUser, title, currentPath, endpoint string) templ.Compo
 </section>
 
 <script>
-(async function() {
-  const state = document.getElementById('%sState')
-  const head = document.getElementById('%sHead')
-  const body = document.getElementById('%sBody')
-  try {
-    const res = await fetch('%s', { credentials: 'same-origin' })
-    const payload = await res.json()
-    if (!res.ok) {
-      state.textContent = payload.message || 'Failed to load data'
-      state.className = 'mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700'
-      return
-    }
+(function() {
+  const state = document.getElementById('%sState');
+  const head = document.getElementById('%sHead');
+  const body = document.getElementById('%sBody');
+  const refreshBtn = document.getElementById('%sRefresh');
 
-    const rows = Array.isArray(payload) ? payload : (Array.isArray(payload.items) ? payload.items : [])
-    if (rows.length === 0) {
-      state.textContent = 'No records found.'
-      return
-    }
+  async function loadData() {
+    state.textContent = 'Loading...';
+    state.className = 'mb-3 rounded border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600';
+    head.innerHTML = '';
+    body.innerHTML = '';
+    try {
+      const res = await fetch('%s', { credentials: 'same-origin' });
+      const payload = await res.json();
+      if (!res.ok) {
+        state.textContent = payload.message || 'Failed to load data';
+        state.className = 'mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700';
+        if(window.parkopsToast) window.parkopsToast('Failed to load data','error');
+        return;
+      }
 
-    const columns = Object.keys(rows[0])
-    head.innerHTML = '<tr>' + columns.map((c) => '<th class="px-3 py-2 font-semibold">' + c.replaceAll('_', ' ') + '</th>').join('') + '</tr>'
-    body.innerHTML = rows.map((row) => {
-      const cells = columns.map((c) => {
-        const raw = row[c]
-        const val = Array.isArray(raw) ? raw.join(', ') : (raw === null || raw === undefined ? '' : String(raw))
-        return '<td class="px-3 py-2 text-slate-700">' + val + '</td>'
-      }).join('')
-      return '<tr>' + cells + '</tr>'
-    }).join('')
-    state.textContent = 'Loaded ' + rows.length + ' records.'
-  } catch (_err) {
-    state.textContent = 'Unable to load data'
-    state.className = 'mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700'
+      const rows = Array.isArray(payload) ? payload : (Array.isArray(payload.items) ? payload.items : []);
+      if (rows.length === 0) {
+        state.textContent = 'No records found.';
+        return;
+      }
+
+      const columns = Object.keys(rows[0]);
+      head.innerHTML = '<tr>' + columns.map(function(c) {
+        return '<th class="px-3 py-2 font-semibold">' + c.replaceAll('_', ' ') + '</th>';
+      }).join('') + '</tr>';
+
+      body.innerHTML = rows.map(function(row) {
+        const cells = columns.map(function(c) {
+          const raw = row[c];
+          let val = '';
+          if (Array.isArray(raw)) val = raw.join(', ');
+          else if (raw === null || raw === undefined) val = '';
+          else if (typeof raw === 'object') val = JSON.stringify(raw);
+          else val = String(raw);
+
+          // Truncate long UUIDs for readability
+          if (c === 'id' || c.endsWith('_id')) {
+            val = val.length > 8 ? val.slice(0,8) + '...' : val;
+          }
+          // Format dates
+          if (c.endsWith('_at') && val && val.includes('T')) {
+            try { val = new Date(val).toLocaleString(); } catch(e) {}
+          }
+          return '<td class="px-3 py-2 text-slate-700 max-w-xs truncate">' + val + '</td>';
+        }).join('');
+        return '<tr class="hover:bg-slate-50">' + cells + '</tr>';
+      }).join('');
+
+      state.textContent = 'Loaded ' + rows.length + ' records.';
+      if(window.parkopsToast) window.parkopsToast('Loaded ' + rows.length + ' records','success');
+    } catch (_err) {
+      state.textContent = 'Unable to load data';
+      state.className = 'mb-3 rounded border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-700';
+      if(window.parkopsToast) window.parkopsToast('Failed to load data','error');
+    }
   }
-})()
+
+  refreshBtn.addEventListener('click', loadData);
+  loadData();
+})();
 </script>`,
 			html.EscapeString(title),
+			html.EscapeString(clean),
 			html.EscapeString(clean), html.EscapeString(clean), html.EscapeString(clean), html.EscapeString(clean),
-			html.EscapeString(clean), html.EscapeString(clean), html.EscapeString(clean),
+			html.EscapeString(clean), html.EscapeString(clean), html.EscapeString(clean), html.EscapeString(clean),
 			html.EscapeString(endpoint),
 		)
 		return AppLayout(user, title, currentPath, content).Render(ctx, w)

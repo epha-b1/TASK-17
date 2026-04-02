@@ -73,7 +73,7 @@ func registerAuthRoutes(r *gin.Engine, authService *auth.Service) {
 	}
 
 	auditViewer := r.Group("/api/admin")
-	auditViewer.Use(requireSession(authService), enforceForcePasswordChange(), requireRoles(authService, auth.RoleAuditor))
+	auditViewer.Use(requireSession(authService), enforceForcePasswordChange(), requireRoles(authService, auth.RoleAuditor, auth.RoleFacilityAdmin))
 	{
 		auditViewer.GET("/audit-logs", listAuditLogsHandler(authService))
 	}
@@ -123,12 +123,12 @@ func formLoginHandler(authService *auth.Service) gin.HandlerFunc {
 
 		result, err := authService.Login(c.Request.Context(), username, password)
 		if err != nil {
-			c.Redirect(http.StatusSeeOther, "/login")
+			c.Redirect(http.StatusSeeOther, "/login?toast=login_error")
 			return
 		}
 
 		setSessionCookie(c, result.Session.ID)
-		c.Redirect(http.StatusSeeOther, "/dashboard")
+		c.Redirect(http.StatusSeeOther, "/dashboard?toast=login_success")
 	}
 }
 
@@ -137,7 +137,7 @@ func formLogoutHandler(authService *auth.Service) gin.HandlerFunc {
 		sessionID, _ := c.Cookie(auth.SessionCookieName)
 		_ = authService.Logout(c.Request.Context(), sessionID)
 		clearSessionCookie(c)
-		c.Redirect(http.StatusSeeOther, "/login")
+		c.Redirect(http.StatusSeeOther, "/login?toast=logout_success")
 	}
 }
 

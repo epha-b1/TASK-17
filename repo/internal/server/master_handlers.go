@@ -105,6 +105,10 @@ func (h *masterHandler) isCrossOrgForbidden(c *gin.Context, organizationID strin
 }
 
 func (h *masterHandler) assertOrgScopeByID(c *gin.Context, table, id string) bool {
+	if !isValidUUID(id) {
+		abortAPIError(c, 400, "VALIDATION_ERROR", "invalid UUID format")
+		return false
+	}
 	u, ok := actor(c)
 	if !ok {
 		abortAPIError(c, http.StatusUnauthorized, "UNAUTHORIZED", "authentication required")
@@ -158,12 +162,12 @@ func (h *masterHandler) listFacilities(c *gin.Context) {
 	out := make([]gin.H, 0)
 	for rows.Next() {
 		var id, name, address string
-		var createdAt string
+		var createdAt time.Time
 		if err := rows.Scan(&id, &name, &address, &createdAt); err != nil {
 			abortAPIError(c, 500, "INTERNAL_ERROR", "internal server error")
 			return
 		}
-		out = append(out, gin.H{"id": id, "name": name, "address": address, "created_at": createdAt})
+		out = append(out, gin.H{"id": id, "name": name, "address": address, "created_at": createdAt.UTC().Format(timeRFC3339)})
 	}
 	c.JSON(200, out)
 }
@@ -202,6 +206,10 @@ func (h *masterHandler) deleteFacility(c *gin.Context) { h.deleteSimple(c, "faci
 func (h *masterHandler) listLots(c *gin.Context) {
 	facilityID := c.Query("facility_id")
 	if strings.TrimSpace(facilityID) != "" {
+		if !isValidUUID(facilityID) {
+			abortAPIError(c, 400, "VALIDATION_ERROR", "facility_id must be a valid UUID")
+			return
+		}
 		h.listSimple(c, `SELECT id::text, facility_id::text, name FROM lots WHERE facility_id=$1 ORDER BY name`, facilityID)
 		return
 	}
@@ -215,6 +223,10 @@ func (h *masterHandler) createLot(c *gin.Context) {
 	}
 	if c.ShouldBindJSON(&b) != nil || b.FacilityID == "" || b.Name == "" {
 		abortAPIError(c, 400, "VALIDATION_ERROR", "invalid request body")
+		return
+	}
+	if !isValidUUID(b.FacilityID) {
+		abortAPIError(c, 400, "VALIDATION_ERROR", "facility_id must be a valid UUID")
 		return
 	}
 	h.insertSimple(c, "lots", []string{"facility_id", "name"}, []any{b.FacilityID, b.Name})
@@ -234,6 +246,10 @@ func (h *masterHandler) deleteLot(c *gin.Context) { h.deleteSimple(c, "lots") }
 func (h *masterHandler) listZones(c *gin.Context) {
 	lotID := c.Query("lot_id")
 	if strings.TrimSpace(lotID) != "" {
+		if !isValidUUID(lotID) {
+			abortAPIError(c, 400, "VALIDATION_ERROR", "lot_id must be a valid UUID")
+			return
+		}
 		h.listSimple(c, `SELECT id::text, lot_id::text, name, total_stalls, hold_timeout_minutes FROM zones WHERE lot_id=$1 ORDER BY name`, lotID)
 		return
 	}
@@ -249,6 +265,10 @@ func (h *masterHandler) createZone(c *gin.Context) {
 	}
 	if c.ShouldBindJSON(&b) != nil || b.LotID == "" || b.Name == "" || b.TotalStalls <= 0 {
 		abortAPIError(c, 400, "VALIDATION_ERROR", "invalid request body")
+		return
+	}
+	if !isValidUUID(b.LotID) {
+		abortAPIError(c, 400, "VALIDATION_ERROR", "lot_id must be a valid UUID")
 		return
 	}
 	if b.HoldTimeoutMinutes <= 0 {
@@ -292,6 +312,10 @@ func (h *masterHandler) deleteZone(c *gin.Context) { h.deleteSimple(c, "zones") 
 func (h *masterHandler) listRatePlans(c *gin.Context) {
 	zoneID := c.Query("zone_id")
 	if strings.TrimSpace(zoneID) != "" {
+		if !isValidUUID(zoneID) {
+			abortAPIError(c, 400, "VALIDATION_ERROR", "zone_id must be a valid UUID")
+			return
+		}
 		h.listSimple(c, `SELECT id::text, zone_id::text, name, rate_cents, period FROM rate_plans WHERE zone_id=$1 ORDER BY name`, zoneID)
 		return
 	}
@@ -307,6 +331,10 @@ func (h *masterHandler) createRatePlan(c *gin.Context) {
 	}
 	if c.ShouldBindJSON(&b) != nil || b.ZoneID == "" || b.Name == "" || b.RateCents < 0 {
 		abortAPIError(c, 400, "VALIDATION_ERROR", "invalid request body")
+		return
+	}
+	if !isValidUUID(b.ZoneID) {
+		abortAPIError(c, 400, "VALIDATION_ERROR", "zone_id must be a valid UUID")
 		return
 	}
 	h.insertSimple(c, "rate_plans", []string{"zone_id", "name", "rate_cents", "period"}, []any{b.ZoneID, b.Name, b.RateCents, b.Period})
@@ -544,6 +572,10 @@ func (h *masterHandler) createDriver(c *gin.Context) {
 		abortAPIError(c, 400, "VALIDATION_ERROR", "invalid request body")
 		return
 	}
+	if !isValidUUID(b.MemberID) {
+		abortAPIError(c, 400, "VALIDATION_ERROR", "member_id must be a valid UUID")
+		return
+	}
 	if !h.assertOrgScopeByID(c, "members", b.MemberID) {
 		return
 	}
@@ -581,6 +613,10 @@ func (h *masterHandler) createMessageRule(c *gin.Context) {
 	}
 	if c.ShouldBindJSON(&b) != nil || b.TriggerEvent == "" || b.TopicID == "" || b.Template == "" {
 		abortAPIError(c, 400, "VALIDATION_ERROR", "invalid request body")
+		return
+	}
+	if !isValidUUID(b.TopicID) {
+		abortAPIError(c, 400, "VALIDATION_ERROR", "topic_id must be a valid UUID")
 		return
 	}
 	active := true

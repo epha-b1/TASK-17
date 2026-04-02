@@ -723,3 +723,180 @@ func swaggerTaskDelete() {}
 // @Success 200 {object} map[string]interface{}
 // @Router /tasks/{id}/complete [post]
 func swaggerTaskComplete() {}
+
+// @Summary List tags
+// @Tags Segmentation
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /tags [get]
+func swaggerTagsList() {}
+
+// @Summary Create tag
+// @Tags Segmentation
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 201 {object} map[string]interface{}
+// @Router /tags [post]
+func swaggerTagsCreate() {}
+
+// @Summary Delete tag
+// @Tags Segmentation
+// @Security SessionCookie
+// @Success 204
+// @Router /tags/{id} [delete]
+func swaggerTagsDelete() {}
+
+// @Summary Get tags for member
+// @Tags Segmentation
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /members/{id}/tags [get]
+func swaggerMemberTagsGet() {}
+
+// @Summary Add tag to member
+// @Tags Segmentation
+// @Security SessionCookie
+// @Accept json
+// @Success 200 {object} map[string]interface{}
+// @Router /members/{id}/tags [post]
+func swaggerMemberTagsAdd() {}
+
+// @Summary Remove tag from member
+// @Tags Segmentation
+// @Security SessionCookie
+// @Success 200 {object} map[string]interface{}
+// @Router /members/{id}/tags/{tagId} [delete]
+func swaggerMemberTagsRemove() {}
+
+// @Summary Export tag version snapshot
+// @Tags Segmentation
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /tags/export [post]
+func swaggerTagsExport() {}
+
+// @Summary Import tag version snapshot
+// @Tags Segmentation
+// @Security SessionCookie
+// @Accept json
+// @Success 200 {object} map[string]interface{}
+// @Router /tags/import [post]
+func swaggerTagsImport() {}
+
+// @Summary List segments
+// @Tags Segmentation
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /segments [get]
+func swaggerSegmentsList() {}
+
+// @Summary Create segment
+// @Tags Segmentation
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 201 {object} map[string]interface{}
+// @Router /segments [post]
+func swaggerSegmentsCreate() {}
+
+// @Summary Get segment
+// @Tags Segmentation
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /segments/{id} [get]
+func swaggerSegmentsGet() {}
+
+// @Summary Update segment
+// @Tags Segmentation
+// @Security SessionCookie
+// @Accept json
+// @Success 200 {object} map[string]interface{}
+// @Router /segments/{id} [patch]
+func swaggerSegmentsPatch() {}
+
+// @Summary Delete segment
+// @Tags Segmentation
+// @Security SessionCookie
+// @Success 204
+// @Router /segments/{id} [delete]
+func swaggerSegmentsDelete() {}
+
+// @Summary Preview segment
+// @Tags Segmentation
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /segments/{id}/preview [post]
+func swaggerSegmentsPreview() {}
+
+// @Summary Run segment on-demand
+// @Tags Segmentation
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /segments/{id}/run [post]
+func swaggerSegmentsRun() {}
+
+// @Summary Get segment run history
+// @Tags Segmentation
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /segments/{id}/runs [get]
+func swaggerSegmentRunsList() {}
+
+// @Summary Occupancy trend data
+// @Tags Analytics
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /analytics/occupancy [get]
+func swaggerAnalyticsOccupancy() {}
+
+// @Summary Booking distribution pivot
+// @Tags Analytics
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /analytics/bookings [get]
+func swaggerAnalyticsBookings() {}
+
+// @Summary Device exception trends
+// @Tags Analytics
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /analytics/exceptions [get]
+func swaggerAnalyticsExceptions() {}
+
+// @Summary List past exports
+// @Tags Analytics
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {array} map[string]interface{}
+// @Router /exports [get]
+func swaggerExportsList() {}
+
+// @Summary Generate export
+// @Tags Analytics
+// @Security SessionCookie
+// @Accept json
+// @Produce json
+// @Success 201 {object} map[string]interface{}
+// @Router /exports [post]
+func swaggerExportsCreate() {}
+
+// @Summary Download export file
+// @Tags Analytics
+// @Security SessionCookie
+// @Produce json
+// @Success 200 {object} map[string]interface{}
+// @Router /exports/{id}/download [get]
+func swaggerExportsDownload() {}

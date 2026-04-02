@@ -67,6 +67,12 @@ func resetAuthData(t *testing.T, pool *pgxpool.Pool) {
 	ctx := context.Background()
 	_, err := pool.Exec(ctx, `
 		TRUNCATE TABLE
+			exports,
+			tag_versions,
+			segment_runs,
+			segment_definitions,
+			member_tags,
+			tags,
 			tasks,
 			campaigns,
 			notification_jobs,

@@ -24,6 +24,7 @@ import (
 	"parkops/internal/db"
 	"parkops/internal/notifications"
 	"parkops/internal/reconciliation"
+	"parkops/internal/segments"
 	"parkops/internal/server"
 )
 
@@ -59,6 +60,8 @@ func main() {
 	go notifications.StartProcessor(ctx, logger, notificationService)
 	campaignService := campaigns.NewService(pool)
 	go campaigns.StartReminderScheduler(ctx, logger, campaignService)
+	segmentService := segments.NewService(pool)
+	go segments.StartNightlyScheduler(ctx, logger, segmentService)
 
 	httpServer := &http.Server{
 		Addr:              cfg.AppAddr,

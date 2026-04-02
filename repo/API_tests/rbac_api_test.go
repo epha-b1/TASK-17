@@ -168,17 +168,26 @@ func assertDeniedAuditLogExists(t *testing.T, env *apiTestEnv, path string) {
 	}
 }
 
-func TestAdminForbiddenFromAuditorOnlyEndpoint(t *testing.T) {
+func TestAdminCanAccessAuditLogs(t *testing.T) {
 	env := setupAuthAPIEnv(t)
 	adminCookie := loginAs(t, env, "admin", "AdminPass1234")
 
 	w := apiRequest(t, env.r, http.MethodGet, "/api/admin/audit-logs", nil, adminCookie)
 	logStep(t, "GET", "/api/admin/audit-logs", w.Code, w.Body.String())
-	if w.Code != http.StatusForbidden {
-		t.Fatalf("expected admin forbidden on auditor endpoint, got %d", w.Code)
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected admin allowed on audit-logs, got %d", w.Code)
 	}
+}
 
-	assertDeniedAuditLogExists(t, env, "/api/admin/audit-logs")
+func TestFleetForbiddenFromAuditLogs(t *testing.T) {
+	env := setupAuthAPIEnv(t)
+	fleetCookie := loginAs(t, env, "fleet", "UserPass1234")
+
+	w := apiRequest(t, env.r, http.MethodGet, "/api/admin/audit-logs", nil, fleetCookie)
+	logStep(t, "GET", "/api/admin/audit-logs (fleet)", w.Code, w.Body.String())
+	if w.Code != http.StatusForbidden {
+		t.Fatalf("expected fleet forbidden on audit-logs, got %d", w.Code)
+	}
 }
 
 func TestRoleEndpointRejectsUnauthorizedRoleUpdate(t *testing.T) {
