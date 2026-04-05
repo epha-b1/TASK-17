@@ -94,7 +94,7 @@ func (s *Service) ProcessDueTaskReminders(ctx context.Context, now time.Time) er
 			}
 
 			var notificationID string
-			err := tx.QueryRow(ctx, `
+			err = tx.QueryRow(ctx, `
 				INSERT INTO notifications(user_id, topic_id, title, body, created_at)
 				VALUES ($1::uuid, $2::uuid, 'Task reminder', $3, $4)
 				RETURNING id::text
