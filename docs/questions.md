@@ -1,121 +1,89 @@
 # Required Document Description: Business Logic Questions Log
 
-## 1) Capacity hold timeout
-Question: The prompt sets a 15-minute hold timeout, but does not define whether timeout is global or configurable by zone.
-My Understanding/Hypothesis: Timeout should be configurable per zone, with 15 minutes as the default.
-Solution: Add `hold_timeout_minutes` on zones with default `15`; reservation hold logic reads from zone-level config.
+This file records business-level ambiguities from the prompt and the implementation decisions taken.
+Each entry follows: **Question + My Understanding/Hypothesis + Solution**.
 
-## 2) Out-of-order device events after reorder window
-Question: The prompt defines a 10-minute reorder window but does not define behavior for events arriving later.
-My Understanding/Hypothesis: Events arriving after 10 minutes should still be accepted, flagged as late, and not reordered.
-Solution: Persist late events with `is_late=true`; apply in arrival order; trigger reconciliation check for impacted zone.
+## 1) [Business Rule] Inventory rollback after cancellation
+Question: The prompt allows cancellation/expiration but does not explicitly define the rollback behavior for reserved stalls.
+My Understanding/Hypothesis: Any cancellation or expiration must release held/consumed capacity immediately to prevent artificial shortage.
+Solution: Implemented capacity release as part of reservation lifecycle (`cancelled`/`expired`) and reconciliation compensating events for missed late cases.
 
-## 3) DND scope for notifications
-Question: The prompt allows DND hours but does not specify whether DND suppresses all notification topics or only reminders.
-My Understanding/Hypothesis: DND should suppress all user-facing topics except critical system alerts.
-Solution: Add topic priority; notification worker delays non-critical notifications during DND and sends critical alerts immediately.
+## 2) [Boundary Condition] Hold timeout scope and default
+Question: The prompt says default hold timeout is 15 minutes, but does not state whether this is global or zone-specific.
+My Understanding/Hypothesis: 15 minutes is a default value and zones may override it when needed.
+Solution: Added/used `hold_timeout_minutes` on zones with default `15`; hold expiration logic reads zone configuration.
 
-## 4) Tag version export format
-Question: The prompt requires tag version export for rollback, but format and fields are not specified.
-My Understanding/Hypothesis: Export should be a structured JSON snapshot with member, tag, and timestamp data.
-Solution: Implement JSON export/import schema including `member_id`, `tags[]`, `exported_at`; enforce validation and audit log on import.
+## 3) [Boundary Condition] Out-of-order events beyond 10-minute window
+Question: Prompt defines correction for out-of-order arrivals within 10 minutes but does not define behavior after the window.
+My Understanding/Hypothesis: Events arriving after the reorder window should still be recorded, then corrected through reconciliation, not dropped.
+Solution: Persist late arrivals, avoid unsafe reorder beyond window, and rely on reconciliation run + compensating release to restore consistency.
 
-## 5) Analytics export row limits
-Question: The prompt requests CSV/Excel/PDF exports but does not define size limits.
-My Understanding/Hypothesis: CSV can be uncapped; Excel and PDF should have practical safety limits.
-Solution: Keep CSV unlimited; cap Excel at 1,048,576 rows and PDF at 10,000 rows; return `truncated=true` metadata when capped.
+## 4) [Business Rule] DND policy versus critical alerts
+Question: The prompt supports DND hours but does not clarify whether DND blocks every notification type.
+My Understanding/Hypothesis: DND suppresses normal reminders but should not block critical operational alerts.
+Solution: Notification dispatch distinguishes critical vs non-critical topics; non-critical respects DND/frequency cap, critical delivers immediately.
 
-## 6) Fleet manager organization boundary
-Question: The prompt does not explicitly define whether Fleet Managers can view vehicles across organizations.
-My Understanding/Hypothesis: Fleet Managers should only access records within their own organization.
-Solution: Enforce `organization_id` scoping in all fleet queries and mutations; return 403 for cross-org access attempts.
+## 5) [Business Process] Frequency cap counting window
+Question: The prompt states “no more than 3 reminders per booking per day” but does not define the counting key.
+My Understanding/Hypothesis: Count should be keyed by `(booking_id, topic, local-day)` to avoid cross-booking interference.
+Solution: Added dedupe/counter logic in reminder scheduling and dispatch checks before enqueue/send.
 
-## 7) Reconciliation tolerance
-Question: The prompt requires compensating actions for snapshot mismatch, but does not define tolerance threshold.
-My Understanding/Hypothesis: Any non-zero mismatch should be corrected to keep capacity accuracy strict.
-Solution: Reconciliation generates compensating release for all non-zero deltas and records each correction in audit log.
+## 6) [Data Relationship] Campaign vs task entity boundary
+Question: The prompt mentions a campaign/task area but does not clearly separate responsibilities.
+My Understanding/Hypothesis: Campaign is the parent container; task is the executable/remindable work item.
+Solution: Keep separate campaign and task models; campaign stores context/targeting window, task stores status/deadline/reminder behavior.
 
-## 8) GPS drift smoothing rule
-Question: The prompt requires smoothing sudden GPS jumps but does not define algorithm.
-My Understanding/Hypothesis: A threshold-based two-point confirmation approach is sufficient for MVP.
-Solution: Mark jump as suspect if distance/time exceeds threshold; accept only when next point confirms, otherwise discard suspect point.
+## 7) [Data Relationship] Message rules vs notification topics
+Question: Prompt includes “message rules” and subscribable topics but does not define the relation.
+My Understanding/Hypothesis: Message rule maps domain event to topic + template used by notification pipeline.
+Solution: Model message rules as trigger definitions and evaluate them on business events before creating notification jobs.
 
-## 9) Rate plan application timing
-Question: The prompt lists rate plans but does not define whether pricing is calculated at creation or confirmation.
-My Understanding/Hypothesis: Price should be calculated at reservation creation and stored as a snapshot for consistency.
-Solution: Compute and persist `applied_rate` and `estimated_total` at create-time; use stored snapshot for downstream payment/display.
+## 8) [Boundary Condition] Segment execution schedule
+Question: The prompt requires on-demand and nightly segment runs but does not define exact nightly timing.
+My Understanding/Hypothesis: One configurable nightly schedule is sufficient for MVP offline deployment.
+Solution: Scheduler runs nightly segment evaluation at configured system time; supports on-demand execution from operator action.
 
-## 10) Arrears source of truth
-Question: The prompt mentions arrears reminders but does not define how overdue balances are tracked.
-My Understanding/Hypothesis: Arrears should come from a ledger-backed member balance, not manual notes only.
-Solution: Add member balance ledger entries (`charge`, `payment`, `adjustment`); arrears reminder rule triggers when balance exceeds threshold.
+## 9) [Business Rule] Export sharing restrictions
+Question: Prompt says exports are restricted by role and segment membership but does not define precedence.
+My Understanding/Hypothesis: Access must pass both checks (role authorization AND segment scope), not either/or.
+Solution: Enforced conjunctive authorization in export endpoints and generated data scope filters accordingly.
 
-## 11) Meaning of message rules
-Question: The prompt says admins manage message rules but does not distinguish them from notification triggers.
-My Understanding/Hypothesis: Message rules are trigger definitions mapping events to template + topic.
-Solution: Create `message_rules` with `event_type`, `topic`, `template_id`, `active`; dispatcher evaluates rules per domain event.
+## 10) [Boundary Condition] Replay without double counting
+Question: Prompt requires controlled replay and idempotency but does not define stable dedupe key.
+My Understanding/Hypothesis: Dedupe must use immutable event identity (`device_id + event_key`) independent of replay attempts.
+Solution: Enforced unique event key per device and idempotent ingest path so replays do not alter counts twice.
 
-## 12) Campaign versus task model
-Question: The prompt says campaign/task area, but entity boundary and lifecycle are unclear.
-My Understanding/Hypothesis: Campaign is a container; tasks are executable items under a campaign.
-Solution: Keep separate `campaigns` and `tasks` tables; campaign handles targeting/window, task handles status/deadline/reminders.
+## 11) [Business Process] Offline buffering ownership
+Question: Prompt requires offline buffering/retransmission but does not specify whether buffering occurs server-side or on device.
+My Understanding/Hypothesis: Device/client side performs buffering; server focuses on idempotent acceptance and reconciliation.
+Solution: Kept ingest API tolerant to delayed retransmissions; server stores accepted events and deduplicates reliably.
 
-## 13) Incremental UI update mechanism
-Question: The prompt asks for incremental UI updates but does not require SSE, WebSocket, or polling explicitly.
-My Understanding/Hypothesis: Polling is acceptable for MVP and lower complexity in offline-first environment.
-Solution: Implement 10-15s polling endpoints first; design event stream abstraction so SSE can be added later without API breakage.
+## 12) [Business Rule] Signed device time trust model
+Question: Prompt requires trusted timestamp evidence using server time plus signed device time when available, but does not define trust fallback.
+My Understanding/Hypothesis: Server time is always authoritative baseline; signed device time is secondary evidence when signature verification succeeds.
+Solution: Store both timestamps and a trust indicator; verification failure keeps event usable with server timestamp only.
 
-## 14) SMS/email export package structure
-Question: The prompt requires exportable SMS/email packages for manual handling, but expected structure is unspecified.
-My Understanding/Hypothesis: CSV and JSON both should be supported for operational portability.
-Solution: Provide package export with `recipient`, `channel`, `subject`, `body`, `created_at`, `reference_id`; include checksum and export metadata.
+## 13) [Business Rule] Session expiration and concurrent sessions
+Question: Prompt specifies 30-minute inactivity timeout but does not explicitly define concurrent login behavior.
+My Understanding/Hypothesis: Multiple sessions may exist, each independently expired by inactivity; admin can revoke sessions when needed.
+Solution: Session model tracks `last_active_at` and per-session expiry; middleware enforces inactivity timeout on every authenticated request.
 
-## 15) Audit log action coverage
-Question: Prompt lists only a subset of actions that must be audited.
-My Understanding/Hypothesis: Security and business-critical lifecycle events should all be audit logged.
-Solution: Audit login, auth failures, role changes, reservation lifecycle, tag operations, exports/imports, event replay, reconciliation, admin actions.
+## 14) [Data Relationship] Multi-role users
+Question: Prompt defines four roles but does not state whether users are single-role or multi-role.
+My Understanding/Hypothesis: Multi-role support is needed for real operations and admin flexibility.
+Solution: Use many-to-many `user_roles`; permission checks aggregate user capabilities across assigned roles.
 
-## 16) Encryption scope for sensitive fields
-Question: Prompt says some fields are encrypted at rest, but exact field set and method boundaries are unclear.
-My Understanding/Hypothesis: Passwords should be hashed only; tokens and sensitive notes should be encrypted.
-Solution: Use Argon2id for passwords; AES-256-GCM encryption for API tokens and contact notes; key from environment-managed secret.
+## 15) [Boundary Condition] Password reset without external email
+Question: System is offline-first/local network, but prompt does not define forgotten-password recovery flow without external mail/SMS.
+My Understanding/Hypothesis: Reset must be admin-initiated locally with forced password change on next login.
+Solution: Admin reset path sets temporary credentials and `force_password_change=true`, then user updates password on first authenticated session.
 
-## 17) Multi-role user support
-Question: Prompt defines four roles but does not state whether users can hold multiple roles.
-My Understanding/Hypothesis: Multi-role assignment is needed for operational flexibility.
-Solution: Implement `user_roles` join table with many-to-many mapping; authorization checks aggregate permissions across assigned roles.
+## 16) [Business Rule] Encryption scope by field type
+Question: Prompt says “sensitive fields encrypted at rest” while also requiring password hashes, which are not reversible encryption.
+My Understanding/Hypothesis: Passwords are hashed only; reversible encryption applies to API tokens and contact notes.
+Solution: Use Argon2id for password hashes and AES-256-GCM at rest for token/notes fields with environment-managed key.
 
-## 18) Offline buffering ownership
-Question: Prompt mentions offline buffering/retransmission but does not specify device-side versus server-side buffering responsibilities.
-My Understanding/Hypothesis: Buffering should be device-side; server handles idempotent ingest.
-Solution: Keep single ingest endpoint with idempotency key; accept retransmitted events and deduplicate on `(device_id, event_id)`.
-
-## 19) Signed device time definition
-Question: Prompt references signed device time but does not define signature scheme.
-My Understanding/Hypothesis: HMAC payload signing with per-device shared secret is intended.
-Solution: Verify HMAC on inbound payload; store both server timestamp and verified device timestamp with trust flag.
-
-## 20) Nightly segment run time
-Question: Prompt says segments run nightly but does not specify schedule granularity.
-My Understanding/Hypothesis: System-wide default schedule is sufficient for MVP.
-Solution: Configure nightly segment job at `02:00` local time via scheduler config; allow global override via environment setting.
-
-## 21) Password reset in offline deployment
-Question: Prompt does not define reset flow when email-based recovery is unavailable.
-My Understanding/Hypothesis: Reset should be admin-initiated with forced password change at next login.
-Solution: Add admin reset action generating temporary password + `force_password_change=true`; require user update on first authenticated session.
-
-## 22) Concurrent session policy
-Question: Prompt defines inactivity timeout but not whether multiple active sessions are allowed.
-My Understanding/Hypothesis: Multiple sessions should be allowed, each with independent inactivity expiration.
-Solution: Track sessions by token/session ID; expire per session; provide admin endpoint to revoke all sessions for a target user.
-
-## 23) Exception acknowledgement state flow
-Question: Prompt says operators monitor exceptions but does not define acknowledgement semantics.
-My Understanding/Hypothesis: Acknowledgement should move exception from active queue to tracked state, with optional reopen.
-Solution: Use states `open -> acknowledged -> resolved` and allow `acknowledged -> open` on recurrence; log actor and note.
-
-## 24) Editable reservation fields after creation
-Question: Prompt includes reservation update capability but does not define editable fields and guard rules.
-My Understanding/Hypothesis: Time window, quantity, and notes are editable until reservation is completed/cancelled.
-Solution: Permit updates only in `hold` and `confirmed`; on capacity-impacting edits, rerun availability and refresh hold atomically.
+## 17) [Business Process] Audit log coverage for tamper-evident history
+Question: Prompt names some audited actions (tag changes, exports, replay) but does not define complete minimum scope.
+My Understanding/Hypothesis: All security-sensitive and business-critical mutations should be audited for forensic completeness.
+Solution: Audit events include auth events, role/permission changes, reservation lifecycle mutations, tag changes, exports/imports, and replay/reconciliation actions.
