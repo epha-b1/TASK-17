@@ -109,7 +109,13 @@ func apiLoginHandler(authService *auth.Service) gin.HandlerFunc {
 
 func apiLogoutHandler(authService *auth.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		sessionID, _ := c.Cookie(auth.SessionCookieName)
+		rawCookie, _ := c.Cookie(auth.SessionCookieName)
+		// Cookie value may be HMAC-signed; strip the signature before using
+		// it as the DB session key, otherwise the DELETE matches zero rows.
+		sessionID, ok := verifySessionID(rawCookie)
+		if !ok {
+			sessionID = rawCookie
+		}
 		_ = authService.Logout(c.Request.Context(), sessionID)
 		clearSessionCookie(c)
 		c.Status(http.StatusNoContent)
@@ -134,7 +140,11 @@ func formLoginHandler(authService *auth.Service) gin.HandlerFunc {
 
 func formLogoutHandler(authService *auth.Service) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		sessionID, _ := c.Cookie(auth.SessionCookieName)
+		rawCookie, _ := c.Cookie(auth.SessionCookieName)
+		sessionID, ok := verifySessionID(rawCookie)
+		if !ok {
+			sessionID = rawCookie
+		}
 		_ = authService.Logout(c.Request.Context(), sessionID)
 		clearSessionCookie(c)
 		c.Redirect(http.StatusSeeOther, "/login?toast=logout_success")
