@@ -1,5 +1,4 @@
 .claude/
-.tmp/
 *.tmpl
 .work/
 sessions/
